@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f0e8">
+  <meta name="description" content="Technical build log of the SEO Topic Cluster Planner: local-first architecture, 268 unit tests, 23 Playwright E2E tests across 12 spec files, and multi-source volume heuristic engine.">
+  <title>Building the SEO Topic Cluster Planner: Architecture, 291 Tests, and 3 Live Data Sources — Hung Pham</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { color-scheme: light; }
+    html { scroll-behavior: smooth; }
+    body { background: #f4f0e8; color: #17221c; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .serif { font-family: Georgia, "Times New Roman", serif; }
+    .grain { background-image: radial-gradient(#17221c 0.45px, transparent 0.45px); background-size: 8px 8px; }
+  </style>
+</head>
+<body class="antialiased">
+  <header class="mx-auto flex max-w-4xl items-center justify-between px-6 py-6 lg:px-8">
+    <a href="../index.html" class="text-sm font-semibold tracking-[0.18em] uppercase hover:text-[#203d2e]">← Hung Pham</a>
+    <nav aria-label="Main navigation" class="flex gap-5 text-sm text-[#536158]">
+      <a class="hover:text-[#17221c]" href="../index.html#work">Work</a>
+      <a class="hover:text-[#17221c]" href="../index.html#building">Building</a>
+      <a class="hover:text-[#17221c]" href="../index.html#blog">Blog</a>
+      <a class="hover:text-[#17221c]" href="../index.html#contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-4xl px-6 pb-24 pt-10 lg:px-8">
+    <article>
+      <div class="mb-8 border-b border-[#203d2e]/15 pb-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#657667]">Build Log · Architecture &amp; Testing</p>
+        <h1 class="serif mt-4 text-4xl sm:text-5xl leading-tight">Building the SEO Topic Cluster Planner: Architecture, 291 Tests, and 3 Live Data Sources</h1>
+        <div class="mt-4 flex flex-wrap items-center gap-3 text-sm text-[#536158]">
+          <span>By Hung Pham</span>
+          <span>·</span>
+          <time datetime="2026-10">October 2026</time>
+          <span>·</span>
+          <a href="https://seo-topic-cluster-planner.pages.dev/" target="_blank" rel="noreferrer" class="underline decoration-[#203d2e]/30 underline-offset-4 hover:decoration-[#203d2e]">Live Demo ↗</a>
+        </div>
+      </div>
+
+      <section class="prose max-w-none space-y-8 text-base leading-relaxed text-[#28332c]">
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">1. Why I Built It</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            Planning content for search engines usually starts in a chaotic spreadsheet. Writers and strategists list target keywords, guess internal linking structures, and paste URLs into rows without any way to see how articles actually connect. Traditional SEO suites solve part of this, but they come with heavy baggage: costly monthly subscriptions, closed ecosystems, and the requirement to upload confidential editorial roadmaps to external third-party databases months before publication.
+          </p>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            I wanted a specialized, local-first browser tool where creators can visually construct topic clusters, enforce strict internal linking architectures (Pillar ↔ Spoke, parent ↔ child), and evaluate keyword potential—all without leaking unpublished content strategies.
+          </p>
+          <p class="mt-4 leading-7 text-[#46534b]">Key design principles from day zero:</p>
+          <ul class="mt-2 list-disc space-y-2 pl-6 text-[#46534b]">
+            <li><strong>Local-First &amp; Zero-Leakage:</strong> All documents, keywords, and relationship graphs are stored directly in the browser's IndexedDB. No user content or unpublished drafts ever leave the user's machine unless explicitly exported.</li>
+            <li><strong>Structural Integrity:</strong> Enforce strict link validation rules (preventing circular parent-child dependencies, warning about missing links to children, and ensuring self-canonical hygiene) before a single word of copy is written.</li>
+            <li><strong>Fast Interactive Visualization:</strong> A full visual graph canvas capable of rendering multi-tier topic topologies with automated layout.</li>
+          </ul>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            The result is the <strong>SEO Topic Cluster Planner</strong>, deployed on Cloudflare Pages with client-side persistence and zero requirement for cloud logins to start planning.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">2. The Stack</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            The architecture was chosen to balance client-side responsiveness, strict type safety, and zero backend maintenance overhead:
+          </p>
+          <div class="mt-4 overflow-x-auto rounded-xl border border-[#203d2e]/15 bg-white p-2">
+            <table class="w-full text-left text-sm">
+              <thead class="border-b border-[#203d2e]/10 bg-[#f4f0e8]/60 text-xs uppercase tracking-wider text-[#536158]">
+                <tr>
+                  <th class="p-3">Layer</th>
+                  <th class="p-3">Technology</th>
+                  <th class="p-3">Rationale</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#203d2e]/10 text-[#46534b]">
+                <tr>
+                  <td class="p-3 font-medium">Framework &amp; Build</td>
+                  <td class="p-3">Vite + React 19 (19.3.0) + TypeScript</td>
+                  <td class="p-3">Fast HMR during development, sub-second production builds, and end-to-end type safety across domain entities.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-medium">Interactive Canvas</td>
+                  <td class="p-3">@xyflow/react (React Flow 12.12.0) + Dagre</td>
+                  <td class="p-3">Node-based canvas for exploring topic clusters, paired with Dagre's directed graph layout engine for automated hierarchical arrangement.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-medium">State &amp; Commands</td>
+                  <td class="p-3">Zustand</td>
+                  <td class="p-3">Lightweight, decoupled reactive state stores. Canvas edits and article modifications dispatch through a command pattern, supporting multi-level undo/redo.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-medium">Schema &amp; Validation</td>
+                  <td class="p-3">Zod 4 (4.6.5)</td>
+                  <td class="p-3">Runtime schema parsing for ProjectDocument, Article, InternalLink, and ValidationIssue. Catches corruption and schema drift before persistence.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-medium">Persistence</td>
+                  <td class="p-3">IndexedDB via idb 8.0.3</td>
+                  <td class="p-3">Client-side storage supporting versioned snapshot backups, project duplication, and offline recovery.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-medium">Edge Functions</td>
+                  <td class="p-3">Cloudflare Pages Functions</td>
+                  <td class="p-3">Serverless proxy endpoints (/api/suggest, /api/paa, /api/bing) handling rate limiting, CORS headers, and secure API key isolation.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-medium">Testing</td>
+                  <td class="p-3">Vitest 5.0.1 + Playwright 1.63.0</td>
+                  <td class="p-3">Fast unit tests with native V8 coverage reporting, paired with browser-level end-to-end test execution.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">3. Test-Driven Verification: 268 Unit Tests + 23 E2E Tests (291 Total)</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            I built the planner following Test-Driven Development (TDD). Because the application manages complex directed acyclic graph (DAG) invariants, link checklists, and multi-source keyword math, testing wasn't an afterthought—it drove every interface contract.
+          </p>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">Unit &amp; Domain Test Suite (268 Tests in 23 Test Suites)</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            The unit test suite covers core domain mechanics across 23 test files (executed via Vitest):
+          </p>
+          <ul class="mt-2 list-disc space-y-2 pl-6 text-[#46534b]">
+            <li><strong>URL &amp; Domain Invariants:</strong> Strict HTTP(S) validation, preventing domain mismatches, rejecting malformed userinfo inputs, and validating canonical rules.</li>
+            <li><strong>Graph Topology &amp; Structural Checks:</strong> Automated cycle detection, hierarchy tier calculation (Pillar = Tier 1, child = parent depth + 1), and validation of missing parent-to-child reciprocal links.</li>
+            <li><strong>Merge Algorithms &amp; Scoring:</strong> Comprehensive testing of keyword deduplication, provenance tracking, and confidence score calculation.</li>
+            <li><strong>Edge Functions &amp; Parsers:</strong> Unit tests verifying JSON and XML response parsers for Google Autocomplete, People Also Ask (PAA), and Bing Webmaster API endpoints under varying network payloads and HTTP status codes.</li>
+          </ul>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">Browser End-to-End Suite (23 Playwright Tests in 12 Spec Files)</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            The 23 Playwright E2E tests across 12 spec files verify complete end-to-end user journeys in real Chromium browser environments:
+          </p>
+          <ol class="mt-2 list-decimal space-y-2 pl-6 text-[#46534b]">
+            <li><strong>Keyword Research &amp; CSV Import:</strong> Uploading CSV keyword batches, inspecting provenance, and asserting table rendering.</li>
+            <li><strong>Interactive Canvas Operations:</strong> Adding articles, connecting edges, expanding/collapsing subtrees, and triggering automated Dagre re-layouts.</li>
+            <li><strong>Multi-Source Keyword Research Panel:</strong> Submitting queries, viewing multi-source metrics, inspecting provenance drawers, and exporting aggregated CSVs.</li>
+            <li><strong>Validation Checklist &amp; Issues Drawer:</strong> Triggering structural warnings and verifying interactive resolution links.</li>
+            <li><strong>Brief &amp; Markdown Export:</strong> Generating and downloading formatted article briefs and content guidelines.</li>
+            <li><strong>Cloud Fallback &amp; Offline Resilience:</strong> Testing graceful degradation when cloud backend services are unavailable or unconfigured.</li>
+          </ol>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            All 23 E2E tests execute against the preview build with mocked external network endpoints.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">4. Three Live Volume &amp; Keyword Signals</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            Search volume from a single source is notoriously unreliable or heavily delayed. To provide actionable intelligence while respecting user privacy, the planner combines three live data signals:
+          </p>
+
+          <div class="mt-4 overflow-x-auto rounded-xl border border-[#203d2e]/15 bg-[#17221c] p-4 font-mono text-xs text-[#dce4d7]">
+<pre>+-------------------------------------------------------------------+
+|                        Client-Side Planner                        |
+|   (src/features/keywords/sources/research.ts + MultiSourcePanel)   |
++---------------------------------+---------------------------------+
+                                  |
+               +------------------+------------------+
+               |                  |                  |
+               v                  v                  v
+       [Google Suggest]    [Google Trends]     [Bing Proxy]
+       /api/suggest        CSV Dataset Export  /api/bing (Cloudflare)
+               |                  |                  |
+               +------------------+------------------+
+                                  |
+                                  v
+                    +---------------------------+
+                    |  MultiSource Merge Engine  |
+                    |   (src/keywords/merge.ts)  |
+                    +---------------------------+
+                                  |
+                                  v
+                      Unified Keyword Decision
+                      - Weighted Volume Score
+                      - Provenance &amp; Intent
+                      - Disagreement Flags</pre>
+          </div>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">1. Google Suggest (Autocomplete API)</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            Queried via <code>/api/suggest</code> through Cloudflare Pages Functions. It captures real-time searcher query completion patterns and prefix expansions directly from Google's suggestion endpoint, returning immediate long-tail variants.
+          </p>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">2. Google Trends (Exported CSV Ingestion)</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            Rather than relying on unofficial and breakable scraping endpoints, Google Trends data is ingested from exported CSV datasets (via <code>src/features/keywords/sources/trends.ts</code>). The engine parses timelines and calculates normalized interest over time and relative momentum indexes without requiring private API keys.
+          </p>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">3. Bing Webmaster Proxy (Cloudflare Pages Functions)</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            Implemented in <code>functions/api/bing.ts</code>. Because calling the Bing Webmaster API directly from the browser would expose private credentials and trigger CORS errors, Cloudflare Pages Functions acts as an authenticated proxy:
+          </p>
+          <ul class="mt-2 list-disc space-y-2 pl-6 text-[#46534b]">
+            <li>Communicates with the Bing Webmaster API using a server-side <code>BING_WEBMASTER_API_KEY</code> or connects to a configured self-hosted proxy (<code>BING_PROXY_URL</code>).</li>
+            <li>Enforces strict IP-based rate limiting (10 requests per minute per IP via <code>functions/lib/http.ts</code>).</li>
+            <li>Enforces locale constraints (English queries supported; missing credentials or unconfigured proxies gracefully return HTTP 503 so client-side fallbacks can engage cleanly).</li>
+          </ul>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">The Multi-Source Heuristic Merge Engine</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            The core logic in <code>src/features/keywords/merge.ts</code> unifies these feeds into an actionable consensus:
+          </p>
+          <ul class="mt-2 list-disc space-y-2 pl-6 text-[#46534b]">
+            <li><strong>Base Weighting:</strong> Bing direct query counts receive a high baseline weight (<code>0.8</code>).</li>
+            <li><strong>Relative Trends Score:</strong> Trends-only signals receive a relative confidence weight (<code>0.4</code>).</li>
+            <li><strong>Co-occurrence Boost:</strong> Keywords confirmed by both Autocomplete and Trends (score &gt; 30) are boosted to <code>0.6</code> and flagged as <code>likely_searched</code>.</li>
+            <li><strong>Automated Disagreement Flagging:</strong> If Bing indicates zero volume while Google Trends indicates high momentum (&gt; 50), the system flags a <code>disagreement</code>, prompting human editorial review rather than masking the discrepancy.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">5. Lessons Learned</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            Building and testing this tool surfaced several non-obvious engineering challenges:
+          </p>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">Lesson 1: Cache Hygiene — Never Cache Transient Failures</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            In an early implementation of client-side caching (<code>src/features/keywords/sources/cache.ts</code>), API responses were stored in IndexedDB with a 7-day TTL. When testing an environment where the Bing API key had not yet been provisioned, the endpoint returned HTTP 503. The caching layer mistakenly cached this 503 response. As a result, even after the valid API key was configured, downstream queries remained locked in an "UNKNOWN" state until cache expiry.
+          </p>
+          <p class="mt-2 leading-7 text-[#46534b]">
+            <strong>Rule established:</strong> Only cache verified HTTP 200 responses. Never persist 5xx errors or transient rate-limit responses into multi-day storage.
+          </p>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">Lesson 2: Build-Time Environment Leakage into Preview Bundles</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            During local development, <code>vite build</code> bundled environment variables from <code>.env.local</code> into the production output bundle. When Playwright launched <code>vite preview</code> to run the <code>cloud-fallback.spec.ts</code> test (which asserts that the UI shows appropriate fallback messaging when cloud sync is unconfigured), the test unexpectedly failed because the app detected the baked-in credentials and considered itself configured.
+          </p>
+          <p class="mt-2 leading-7 text-[#46534b]">
+            <strong>Fix:</strong> We decoupled E2E testing into a dedicated test mode that guarantees an empty environment configuration, ensuring offline and fallback assertions remain reproducible.
+          </p>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">Lesson 3: Mocking 3rd-Party Endpoints in E2E Suites</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            Relying on live external search engine APIs during CI/E2E test runs leads to flaky builds, IP throttling, and non-deterministic assertions. We decoupled browser tests by using Playwright's <code>page.route</code> to mock edge API responses with realistic fixtures, while reserving real network testing for isolated unit and smoke tests. This delivered fast, isolated test runs.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">6. What's Next</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            The tool is live at <a href="https://seo-topic-cluster-planner.pages.dev/" target="_blank" rel="noreferrer" class="underline decoration-[#203d2e]/30 underline-offset-4 hover:decoration-[#203d2e]">seo-topic-cluster-planner.pages.dev</a>. Current work focuses on expanding keyword provenance filters, adding deeper content brief export templates, and integrating semantic clustering algorithms directly in WebAssembly.
+          </p>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            All code and architecture decisions are backed by verified local automated test runs.
+          </p>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  <footer class="mx-auto flex max-w-4xl flex-col gap-3 border-t border-[#203d2e]/15 px-6 py-8 text-sm text-[#536158] sm:flex-row sm:items-center sm:justify-between lg:px-8">
+    <span>Hung Pham · Vietnam</span>
+    <a href="../index.html" class="hover:text-[#17221c]">← Back to portfolio</a>
+  </footer>
+</body>
+</html>

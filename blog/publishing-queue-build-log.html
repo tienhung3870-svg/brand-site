@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f0e8">
+  <meta name="description" content="Technical build log of the Multi-Platform Publishing Pipeline: local-first directory queue, central HTTP dispatcher on port 8765, and decoupled upload adapters.">
+  <title>Multi-Platform Publishing Pipeline: Queue Architecture, Local Dispatcher, and Platform Adapters — Hung Pham</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { color-scheme: light; }
+    html { scroll-behavior: smooth; }
+    body { background: #f4f0e8; color: #17221c; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .serif { font-family: Georgia, "Times New Roman", serif; }
+    .grain { background-image: radial-gradient(#17221c 0.45px, transparent 0.45px); background-size: 8px 8px; }
+  </style>
+</head>
+<body class="antialiased">
+  <header class="mx-auto flex max-w-4xl items-center justify-between px-6 py-6 lg:px-8">
+    <a href="../index.html" class="text-sm font-semibold tracking-[0.18em] uppercase hover:text-[#203d2e]">← Hung Pham</a>
+    <nav aria-label="Main navigation" class="flex gap-5 text-sm text-[#536158]">
+      <a class="hover:text-[#17221c]" href="../index.html#work">Work</a>
+      <a class="hover:text-[#17221c]" href="../index.html#building">Building</a>
+      <a class="hover:text-[#17221c]" href="../index.html#blog">Blog</a>
+      <a class="hover:text-[#17221c]" href="../index.html#contact">Contact</a>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-4xl px-6 pb-24 pt-10 lg:px-8">
+    <article>
+      <div class="mb-8 border-b border-[#203d2e]/15 pb-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#657667]">Build Log · Systems &amp; Automation</p>
+        <h1 class="serif mt-4 text-4xl sm:text-5xl leading-tight">Multi-Platform Publishing Pipeline: Queue Architecture, Local Dispatcher, and Platform Adapters</h1>
+        <div class="mt-4 flex flex-wrap items-center gap-3 text-sm text-[#536158]">
+          <span>By Hung Pham</span>
+          <span>·</span>
+          <time datetime="2026-10">October 2026</time>
+          <span>·</span>
+          <span class="rounded-full bg-[#dce4d7] px-2.5 py-0.5 text-xs font-medium text-[#203d2e]">Private Repository</span>
+        </div>
+      </div>
+
+      <section class="prose max-w-none space-y-8 text-base leading-relaxed text-[#28332c]">
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">1. System Overview</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            Managing short-form video releases across multiple social networks often breaks down due to fragile browser automation or bulky third-party SaaS scheduling platforms that lock files behind recurring fees. To solve this locally, I designed a decoupled publishing pipeline built around a filesystem-backed state queue, an isolated Python HTTP gateway, and modular API upload adapters.
+          </p>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            The system isolates three concerns:
+          </p>
+          <ul class="mt-2 list-disc space-y-2 pl-6 text-[#46534b]">
+            <li><strong>Filesystem State Machine:</strong> Clean directory separation (<code>queue/</code> for pending items and <code>done/</code> for completed runs) guarantees that file state is inspectable using standard Unix tools.</li>
+            <li><strong>Central Local Dispatcher:</strong> A lightweight Python HTTP server listening on <code>127.0.0.1:8765</code> that abstracts thumbnail generation, job logging, streaming endpoints, and review gates.</li>
+            <li><strong>Decoupled Upload Adapters:</strong> Dedicated platform adapters for Facebook, Instagram, Threads, and YouTube that interact strictly with official platform APIs and handle authentication independently.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">2. Directory Pipeline &amp; State Management</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            Instead of relying on an external database, the pipeline manages execution lifecycle through structured directories on the local machine:
+          </p>
+          <div class="mt-4 overflow-x-auto rounded-xl border border-[#203d2e]/15 bg-white p-2">
+            <table class="w-full text-left text-sm">
+              <thead class="border-b border-[#203d2e]/10 bg-[#f4f0e8]/60 text-xs uppercase tracking-wider text-[#536158]">
+                <tr>
+                  <th class="p-3">Path</th>
+                  <th class="p-3">Role</th>
+                  <th class="p-3">Current State</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#203d2e]/10 text-[#46534b]">
+                <tr>
+                  <td class="p-3 font-mono text-xs">queue/</td>
+                  <td class="p-3">Pending assets waiting for publication processing</td>
+                  <td class="p-3">2 thumbnail files staged (42 KB and 66 KB)</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-mono text-xs">done/</td>
+                  <td class="p-3">Archived assets after execution completion</td>
+                  <td class="p-3">2 video files archived (1.0 MB and 5.5 MB)</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-mono text-xs">logs/</td>
+                  <td class="p-3">Append-only JSONL event history and job registry</td>
+                  <td class="p-3"><code>jobs.jsonl</code> (61 entries), <code>jobs_registry.json</code> (80 lines)</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-mono text-xs">adapters/</td>
+                  <td class="p-3">Platform-specific upload modules</td>
+                  <td class="p-3">4 platform adapters implemented</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-mono text-xs">tools/</td>
+                  <td class="p-3">Dispatcher, scheduler, and helper utilities</td>
+                  <td class="p-3">Gateway dispatcher, daily runner, sheet sync</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">Redacted Directory Layout</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            Below is the verified directory layout of the local repository with sensitive account identifiers and credentials redacted:
+          </p>
+          <div class="mt-3 overflow-x-auto rounded-xl border border-[#203d2e]/15 bg-[#17221c] p-4 text-xs font-mono text-[#dce4d7]">
+<pre><code>[PRIVATE_LOCAL_REPOSITORY]/
+├── adapters/
+│   ├── upload_facebook.py       # Meta Graph API v21.0 (Reels)
+│   ├── upload_instagram.py      # Meta Graph API v21.0 (Resumable upload)
+│   ├── upload_threads.py        # Threads API v1.0 (Container flow)
+│   └── upload_youtube.py        # YouTube Data API v3 (OAuth2)
+├── credentials/                 # Local secrets [REDACTED]
+├── done/
+│   ├── [REDACTED_VIDEO_1].mp4   # 1,048,576 bytes
+│   └── [REDACTED_VIDEO_2].mp4   # 5,538,005 bytes
+├── logs/
+│   ├── jobs.jsonl               # 61 recorded audit events
+│   └── jobs_registry.json       # 80 lines active registry
+├── queue/
+│   ├── [REDACTED_VIDEO_1]_thumb.jpg
+│   └── [REDACTED_VIDEO_2]_thumb.jpg
+├── tools/
+│   ├── daily_scheduler.py       # 18:30 queue scanner
+│   ├── extract_thumbnail.py     # ffmpeg frame extractor
+│   ├── local_dispatcher.py      # HTTP gateway on :8765
+│   └── sync_google_sheet.py     # Audit reporting
+└── RUNBOOK.md</code></pre>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">3. Platform Adapters</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            Each social network exposes different upload semantics, binary chunk limits, and container initialization requirements. The architecture encapsulates these differences into independent Python modules:
+          </p>
+
+          <div class="mt-4 space-y-4">
+            <div class="rounded-xl border border-[#203d2e]/15 bg-white p-5">
+              <h3 class="font-semibold text-[#17221c]">Facebook Reels (<code class="text-xs bg-[#f4f0e8] px-2 py-0.5 rounded">upload_facebook.py</code>)</h3>
+              <p class="mt-2 text-sm leading-6 text-[#46534b]">
+                Interacts with Meta Graph API v21.0 targeting page reels endpoints. It supports draft mode initialization, staged chunk upload, and status polling before publishing.
+              </p>
+            </div>
+
+            <div class="rounded-xl border border-[#203d2e]/15 bg-white p-5">
+              <h3 class="font-semibold text-[#17221c]">Instagram Reels (<code class="text-xs bg-[#f4f0e8] px-2 py-0.5 rounded">upload_instagram.py</code>)</h3>
+              <p class="mt-2 text-sm leading-6 text-[#46534b]">
+                Implements Meta Graph API v21.0 with Resumable Binary Upload protocol. It handles media container creation, binary stream transfer, processing status verification, and optional feed sharing parameters.
+              </p>
+            </div>
+
+            <div class="rounded-xl border border-[#203d2e]/15 bg-white p-5">
+              <h3 class="font-semibold text-[#17221c]">Threads Video (<code class="text-xs bg-[#f4f0e8] px-2 py-0.5 rounded">upload_threads.py</code>)</h3>
+              <p class="mt-2 text-sm leading-6 text-[#46534b]">
+                Connects via Threads API v1.0. Because Threads requires a publicly accessible video container URL during processing, the adapter coordinates with the local dispatcher's streaming endpoint to serve the asset during ingestion.
+              </p>
+            </div>
+
+            <div class="rounded-xl border border-[#203d2e]/15 bg-white p-5">
+              <h3 class="font-semibold text-[#17221c]">YouTube Shorts (<code class="text-xs bg-[#f4f0e8] px-2 py-0.5 rounded">upload_youtube.py</code>)</h3>
+              <p class="mt-2 text-sm leading-6 text-[#46534b]">
+                Utilizes the official Google API client (<code class="text-xs bg-[#f4f0e8] px-2 py-0.5 rounded">google-api-python-client</code>) with stored OAuth2 refresh credentials, uploading assets via resumable media chunks with configurable privacy status.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">4. Local Gateway Dispatcher</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            At the heart of the pipeline is <code>tools/local_dispatcher.py</code>, a Python HTTP server binding to <code>127.0.0.1:8765</code>. It functions as an orchestration gateway providing dedicated endpoints:
+          </p>
+          <ul class="mt-2 list-disc space-y-2 pl-6 text-[#46534b]">
+            <li><code>/extract-thumbnail</code>: Uses local <code>ffmpeg</code> to capture a high-quality frame (< 500 KB) for preview and review gates.</li>
+            <li><code>/register-job</code>: Registers an incoming job, tracks state in <code>logs/jobs_registry.json</code>, and dispatches approval messages.</li>
+            <li><code>/publish</code>: Dispatches upload commands to specific platform adapters or orchestrates fan-out across multiple adapters.</li>
+            <li><code>/videos/&lt;filename&gt;</code>: Serves range-based streaming video chunks needed by web container ingestion APIs.</li>
+          </ul>
+
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">Redacted Job Audit Log Excerpt</h3>
+          <p class="mt-3 leading-7 text-[#46534b]">
+            Every action produces an append-only audit record in <code>logs/jobs.jsonl</code>. Below is a representative record with sensitive account and token details redacted:
+          </p>
+          <div class="mt-3 overflow-x-auto rounded-xl border border-[#203d2e]/15 bg-[#17221c] p-4 text-xs font-mono text-[#dce4d7]">
+<pre><code>{
+  "job_id": "[REDACTED_JOB_ID]",
+  "video_name": "[REDACTED_FILENAME].mp4",
+  "status": "COMPLETED",
+  "platforms": {
+    "youtube": {"status": "SUCCESS", "id": "[REDACTED]"},
+    "facebook": {"status": "SUCCESS", "id": "[REDACTED]"},
+    "instagram": {"status": "SUCCESS", "id": "[REDACTED]"},
+    "threads": {"status": "SUCCESS", "id": "[REDACTED]"}
+  },
+  "timestamp": "2026-10-[REDACTED]T[REDACTED]"
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-[#203d2e]/20 bg-[#dce4d7]/50 p-6 sm:p-8">
+          <h2 class="serif text-2xl sm:text-3xl text-[#17221c]">What is not verified yet</h2>
+          <p class="mt-4 leading-7 text-[#46534b]">
+            In keeping with strict engineering honesty, the following boundaries and limitations must be clearly stated:
+          </p>
+          <ul class="mt-3 list-disc space-y-2 pl-6 text-[#46534b]">
+            <li><strong>Unattended Continuous Production:</strong> The pipeline is designed around human review gates. Unattended continuous production automation across all platforms has not been verified and is not run without human intervention.</li>
+            <li><strong>Multi-Channel Production Scale:</strong> While the upload adapters support multiple credentials, multi-channel production deployment is not publicly claimed or tested at scale.</li>
+            <li><strong>Private Implementation:</strong> The codebase resides in a private local repository (<code>[PRIVATE_LOCAL_REPOSITORY]</code>) due to proprietary workflows and embedded platform client registrations. It is documented here strictly as an architectural case study.</li>
+            <li><strong>Platform API Volatility:</strong> Social network video APIs frequently update terms, rate limits, and chunk requirements. Continuous maintenance is required to keep individual adapters aligned with upstream API versions.</li>
+          </ul>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  <footer class="mx-auto flex max-w-4xl flex-col gap-3 border-t border-[#203d2e]/15 px-6 py-8 text-sm text-[#536158] sm:flex-row sm:items-center sm:justify-between lg:px-8">
+    <span>Hung Pham · Vietnam</span>
+    <a href="../index.html" class="hover:text-[#17221c]">← Back to portfolio</a>
+  </footer>
+</body>
+</html>
