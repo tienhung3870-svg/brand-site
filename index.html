@@ -22,6 +22,7 @@
       <a class="hover:text-[#17221c]" href="#about">About</a>
       <a class="hover:text-[#17221c]" href="#work">Work</a>
       <a class="hover:text-[#17221c]" href="#building">Building</a>
+      <a class="hover:text-[#17221c]" href="#blog">Blog</a>
       <a class="hover:text-[#17221c]" href="#contact">Contact</a>
     </nav>
   </header>
@@ -126,10 +127,47 @@
       </div>
     </section>
 
+    <section id="blog" class="border-t border-[#203d2e]/15 bg-[#f4f0e8]">
+      <div class="mx-auto max-w-6xl px-6 py-16 md:py-24 lg:px-10">
+        <div class="mb-10 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p class="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-[#657667]">04 / Blog & Build Logs</p>
+            <h2 class="serif text-4xl sm:text-5xl">Engineering notes</h2>
+          </div>
+          <p class="max-w-sm text-sm leading-6 text-[#536158]">Technical logs, architectural decisions, and honest build notes.</p>
+        </div>
+        <div class="grid gap-6">
+          <article class="flex flex-col justify-between rounded-2xl bg-[#dce4d7] p-7 transition sm:p-9">
+            <div>
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs uppercase tracking-[0.2em] text-[#536158]">Build log · Architecture & Testing</span>
+                <time class="text-xs text-[#536158]">October 2026</time>
+              </div>
+              <h3 class="serif mt-4 text-2xl sm:text-3xl text-[#17221c]">
+                <a href="blog/seo-planner-build-log.md" class="hover:underline">Building the SEO Topic Cluster Planner: Architecture, 272 Tests, and 3 Live Data Sources</a>
+              </h3>
+              <p class="mt-4 max-w-3xl leading-7 text-[#536158]">
+                Why I built a browser-based, zero-leakage topic cluster planner on Cloudflare Pages. A deep dive into the TypeScript + React Flow stack, test-driven development with 249 unit and 23 E2E Playwright tests, a 3-source volume proxy (Google Suggest, Trends, Bing Webmaster), and hard-learned engineering lessons on cache hygiene and build-time env leaks.
+              </p>
+            </div>
+            <div class="mt-8 flex flex-wrap items-center gap-4">
+              <a href="blog/seo-planner-build-log.md" class="inline-flex items-center gap-2 text-sm font-medium text-[#203d2e] underline decoration-[#203d2e]/30 underline-offset-4 hover:decoration-[#203d2e]">
+                Read build log <span aria-hidden="true">→</span>
+              </a>
+              <span class="text-xs text-[#536158]">·</span>
+              <a href="https://seo-topic-cluster-planner.pages.dev/" target="_blank" rel="noreferrer" class="text-xs text-[#536158] hover:text-[#17221c]">
+                Open live planner <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section id="contact" class="border-t border-[#203d2e]/15 bg-[#e9e6dc]">
       <div class="mx-auto flex max-w-6xl flex-col gap-5 px-6 py-14 md:flex-row md:items-end md:justify-between lg:px-10">
         <div>
-          <p class="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[#657667]">04 / Contact</p>
+          <p class="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[#657667]">05 / Contact</p>
           <h2 class="serif text-4xl sm:text-5xl">Good ideas start with a conversation.</h2>
         </div>
         <a class="text-lg text-[#203d2e] underline decoration-[#203d2e]/30 underline-offset-4 hover:decoration-[#203d2e]" href="mailto:hung@phamtienhung.me">hung@phamtienhung.me</a>
