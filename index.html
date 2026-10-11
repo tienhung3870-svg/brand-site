@@ -13,6 +13,8 @@
     body { background: #f4f0e8; color: #17221c; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     .serif { font-family: Georgia, "Times New Roman", serif; }
     .grain { background-image: radial-gradient(#17221c 0.45px, transparent 0.45px); background-size: 8px 8px; }
+    code { word-break: break-word; overflow-wrap: break-word; }
+    .overflow-x-auto { max-width: 100%; }
   </style>
 </head>
 <body class="antialiased">
@@ -144,10 +146,10 @@
                 <time class="text-xs text-[#536158]">October 2026</time>
               </div>
               <h3 class="serif mt-4 text-2xl sm:text-3xl text-[#17221c]">
-                <a href="blog/seo-planner-build-log.html" class="hover:underline">Building the SEO Topic Cluster Planner: Architecture, 291 Tests, and 3 Live Data Sources</a>
+                <a href="blog/seo-planner-build-log.html" class="hover:underline">Building the SEO Topic Cluster Planner: Architecture, Automated Tests, and 3 Keyword Inputs</a>
               </h3>
               <p class="mt-4 max-w-3xl leading-7 text-[#536158]">
-                Why I built a browser-based, zero-leakage topic cluster planner on Cloudflare Pages. A deep dive into the TypeScript + React Flow stack, test-driven development with 268 unit tests across 23 test files and 23 E2E Playwright tests across 12 spec files, a 3-source volume proxy (Google Suggest, Trends, Bing Webmaster), and hard-learned engineering lessons on cache hygiene and build-time env leaks.
+                Why I built a browser-based, local-first topic cluster planner on Cloudflare Pages. A deep dive into the TypeScript + React Flow stack, automated test verification with 290 passed Vitest tests across 24 test files and 23 defined Playwright E2E scenarios across 12 spec files, 3 keyword research inputs (Google Suggest, Trends CSV, Bing proxy), and engineering lessons on cache hygiene and build-time env leaks.
               </p>
             </div>
             <div class="mt-8 flex flex-wrap items-center gap-4">

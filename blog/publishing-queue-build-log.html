@@ -13,6 +13,8 @@
     body { background: #f4f0e8; color: #17221c; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     .serif { font-family: Georgia, "Times New Roman", serif; }
     .grain { background-image: radial-gradient(#17221c 0.45px, transparent 0.45px); background-size: 8px 8px; }
+    code { word-break: break-word; overflow-wrap: break-word; }
+    .overflow-x-auto { max-width: 100%; }
   </style>
 </head>
 <body class="antialiased">
@@ -50,9 +52,9 @@
             The system isolates three concerns:
           </p>
           <ul class="mt-2 list-disc space-y-2 pl-6 text-[#46534b]">
-            <li><strong>Filesystem State Machine:</strong> Clean directory separation (<code>queue/</code> for pending items and <code>done/</code> for completed runs) guarantees that file state is inspectable using standard Unix tools.</li>
+            <li><strong>Filesystem State Machine:</strong> Clean directory separation (<code>queue/</code> for pending items and <code>done/</code> for items that completed the local processing step) makes file state inspectable using standard Unix tools.</li>
             <li><strong>Central Local Dispatcher:</strong> A lightweight Python HTTP server listening on <code>127.0.0.1:8765</code> that abstracts thumbnail generation, job logging, streaming endpoints, and review gates.</li>
-            <li><strong>Decoupled Upload Adapters:</strong> Dedicated platform adapters for Facebook, Instagram, Threads, and YouTube that interact strictly with official platform APIs and handle authentication independently.</li>
+            <li><strong>Decoupled Upload Adapters:</strong> Dedicated platform adapters for Facebook, Instagram, Threads, and YouTube that interact with official platform APIs and handle authentication independently.</li>
           </ul>
         </div>
 
@@ -78,8 +80,8 @@
                 </tr>
                 <tr>
                   <td class="p-3 font-mono text-xs">done/</td>
-                  <td class="p-3">Archived assets after execution completion</td>
-                  <td class="p-3">2 video files archived (1.0 MB and 5.5 MB)</td>
+                  <td class="p-3">Archived local assets after completing local pipeline step (does not imply verified publishing or external platform delivery)</td>
+                  <td class="p-3">2 video files staged (1.0 MB and 5.5 MB)</td>
                 </tr>
                 <tr>
                   <td class="p-3 font-mono text-xs">logs/</td>
@@ -179,21 +181,16 @@
             <li><code>/videos/&lt;filename&gt;</code>: Serves range-based streaming video chunks needed by web container ingestion APIs.</li>
           </ul>
 
-          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">Redacted Job Audit Log Excerpt</h3>
+          <h3 class="serif mt-6 text-xl sm:text-2xl text-[#17221c]">Redacted Job Audit Log Structure</h3>
           <p class="mt-3 leading-7 text-[#46534b]">
-            Every action produces an append-only audit record in <code>logs/jobs.jsonl</code>. Below is a representative record with sensitive account and token details redacted:
+            Pipeline actions append individual event records to <code>logs/jobs.jsonl</code>. Below is an illustrative schema showing the atomic single-event structure observed during local execution (values redacted). This represents atomic step logging during local execution, not proof of cross-platform publication:
           </p>
           <div class="mt-3 overflow-x-auto rounded-xl border border-[#203d2e]/15 bg-[#17221c] p-4 text-xs font-mono text-[#dce4d7]">
 <pre><code>{
   "job_id": "[REDACTED_JOB_ID]",
-  "video_name": "[REDACTED_FILENAME].mp4",
-  "status": "COMPLETED",
-  "platforms": {
-    "youtube": {"status": "SUCCESS", "id": "[REDACTED]"},
-    "facebook": {"status": "SUCCESS", "id": "[REDACTED]"},
-    "instagram": {"status": "SUCCESS", "id": "[REDACTED]"},
-    "threads": {"status": "SUCCESS", "id": "[REDACTED]"}
-  },
+  "status": "UPLOADING",
+  "title": "[REDACTED_TITLE]",
+  "channel": "[REDACTED_CHANNEL]",
   "timestamp": "2026-10-[REDACTED]T[REDACTED]"
 }</code></pre>
           </div>
@@ -206,7 +203,8 @@
           </p>
           <ul class="mt-3 list-disc space-y-2 pl-6 text-[#46534b]">
             <li><strong>Unattended Continuous Production:</strong> The pipeline is designed around human review gates. Unattended continuous production automation across all platforms has not been verified and is not run without human intervention.</li>
-            <li><strong>Multi-Channel Production Scale:</strong> While the upload adapters support multiple credentials, multi-channel production deployment is not publicly claimed or tested at scale.</li>
+            <li><strong>Multi-Channel Production Scale:</strong> While the upload adapters support multiple credentials, multi-channel production deployment is not publicly claimed or tested at scale. The existence of adapters in code does not prove verified production uploads or successful multi-platform delivery.</li>
+            <li><strong>Local State vs. Remote Delivery:</strong> Assets moved to <code>done/</code> indicate only that local script execution completed; it does not confirm platform-side post ingestion or delivery.</li>
             <li><strong>Private Implementation:</strong> The codebase resides in a private local repository (<code>[PRIVATE_LOCAL_REPOSITORY]</code>) due to proprietary workflows and embedded platform client registrations. It is documented here strictly as an architectural case study.</li>
             <li><strong>Platform API Volatility:</strong> Social network video APIs frequently update terms, rate limits, and chunk requirements. Continuous maintenance is required to keep individual adapters aligned with upstream API versions.</li>
           </ul>
